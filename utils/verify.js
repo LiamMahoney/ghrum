@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const config = require('../config/config.json');
 
 /*
 Express middleware function that verifies if the secret sent with the 
@@ -13,7 +12,7 @@ function verifyPostData(req, res, next) {
     }
 
     const sig = req.get('X-Hub-Signature') || '';
-    const hmac = crypto.createHmac('sha1', config.webhookSecret);
+    const hmac = crypto.createHmac('sha1', process.env.WEBHOOK_SECRET);
     const digest = Buffer.from('sha1=' + hmac.update(payload).digest('hex'), 'utf8');
     const checksum = Buffer.from(sig, 'utf8');
     if (checksum.length !== digest.length || !crypto.timingSafeEqual(digest, checksum)) {

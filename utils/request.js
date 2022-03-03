@@ -1,6 +1,10 @@
 const https = require('https');
-const config = require('../config/config');
 const url = require('url');
+
+const githubApiUrl = process.env.githubApiURL ? process.env.githubApiUrl : 'api.github.com';
+if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_APP_SECRET) {
+    throw new Error('GITHUB_APP_ID and GITHUB_APP_SECRET environment variables are required to run');
+}
 
 /**
  * 
@@ -10,12 +14,12 @@ function get(opts) {
     //TODO: validate options
     return new Promise((resolve, reject) => {
         let options = {
-            hostname: config.githubApiUrl,
+            hostname: githubApiUrl,
             port: 443,
             path: encodeURI(opts.path),
             method: 'GET',
             headers: {
-                Authorization: `Basic ${Buffer.from(`${config.gitUser}:${config.gitAPIToken}`).toString('base64')}`,
+                Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
                 'User-Agent': 'Scrummy'
             }
         }
@@ -59,12 +63,12 @@ function post(opts, data) {
     //TODO: validate options
     return new Promise((resolve, reject) => {
         let options = {
-            hostname: config.githubApiUrl,
+            hostname: githubApiUrl,
             port: 443,
             path: encodeURI(opts.path),
             method: 'POST',
             headers: {
-                Authorization: `Basic ${Buffer.from(`${config.gitUser}:${config.gitAPIToken}`).toString('base64')}`,
+                Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
                 'User-Agent': 'Scrummy'
             }
         }
@@ -108,12 +112,12 @@ function del(opts) {
     //TODO: validate options
     return new Promise((resolve, reject) => {
         let options = {
-            hostname: config.githubApiUrl,
+            hostname: githubApiUrl,
             port: 443,
             path: encodeURI(opts.path),
             method: 'DELETE',
             headers: {
-                Authorization: `Basic ${Buffer.from(`${config.gitUser}:${config.gitAPIToken}`).toString('base64')}`,
+                Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
                 'User-Agent': 'Scrummy'
             }
         }
@@ -158,12 +162,12 @@ function patch(opts, data) {
     //TODO: validate options
     return new Promise((resolve, reject) => {
         let options = {
-            hostname: config.githubApiUrl,
+            hostname: githubApiUrl,
             port: 443,
             path: encodeURI(opts.path),
             method: 'PATCH',
             headers: {
-                Authorization: `Basic ${Buffer.from(`${config.gitUser}:${config.gitAPIToken}`).toString('base64')}`,
+                Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
                 'User-Agent': 'Scrummy'
             }
         }

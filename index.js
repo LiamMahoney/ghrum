@@ -1,7 +1,7 @@
-const config = require('./config/config.json');
 const express = require('express');
 const { scrummy } = require('./core/scrummy');
 const { verifyPostData } = require('./utils/verify');
+const { log } = require('./utils/log');
 
 const app = express();
 
@@ -21,4 +21,8 @@ app.use((err, req, res, next) => {
     res.status(403).send("Error verifying request");
 });
 
-app.listen(config.port);
+const port = process.env.PORT ? process.env.PORT : 3000
+
+app.listen(port, ()=> {
+    log.info(`ghrum listening on port ${port}`);
+});

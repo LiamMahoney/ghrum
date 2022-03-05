@@ -1,5 +1,5 @@
 const express = require('express');
-const { scrummy } = require('./core/scrummy');
+const { ghrum } = require('./core/ghrum');
 const { verifyPostData } = require('./utils/verify');
 const { log } = require('./utils/log');
 
@@ -9,8 +9,8 @@ app.use(express.json());
 
 app.post("/", verifyPostData, (req, res) => {
 
-    scrummy(req.headers['x-github-event'], req.body);
-    // don't care if scrummy fails or not, the webhook won't alert
+    ghrum(req.headers['x-github-event'], req.body);
+    // don't care if ghrum fails or not, the webhook won't alert
     res.status(200).send();
 });
 

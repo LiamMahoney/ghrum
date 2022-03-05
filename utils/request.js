@@ -20,7 +20,7 @@ function get(opts) {
             method: 'GET',
             headers: {
                 Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
-                'User-Agent': 'Scrummy'
+                'User-Agent': 'ghrum'
             }
         }
 
@@ -69,7 +69,7 @@ function post(opts, data) {
             method: 'POST',
             headers: {
                 Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
-                'User-Agent': 'Scrummy'
+                'User-Agent': 'ghrum'
             }
         }
         
@@ -118,7 +118,7 @@ function del(opts) {
             method: 'DELETE',
             headers: {
                 Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
-                'User-Agent': 'Scrummy'
+                'User-Agent': 'ghrum'
             }
         }
         
@@ -168,7 +168,7 @@ function patch(opts, data) {
             method: 'PATCH',
             headers: {
                 Authorization: `Basic ${Buffer.from(`${process.env.GITHUB_APP_ID}:${process.env.GITHUB_APP_SECRET}`).toString('base64')}`,
-                'User-Agent': 'Scrummy'
+                'User-Agent': 'ghrum'
             }
         }
         

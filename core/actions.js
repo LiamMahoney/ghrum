@@ -6,7 +6,7 @@ const Milestone = require('./actions/milestone');
 const PullRequest = require('./actions/pull_request');
 
 
-// This file holds all of the actions so there is only one import required in scrummy.js
+// This file holds all of the actions so there is only one import required in ghrum.js
 
 // the actions directory is used to interact with the GitHub API to either get information or to perform an action
 

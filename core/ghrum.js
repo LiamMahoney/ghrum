@@ -12,7 +12,7 @@ const { project, milestone, projectCard, issues, pullRequest } = require('./hook
  */
 async function determineHook(type, data) {
     try {
-        log.info(`scrummy recieved hook with type: ${type} and action ${data.action}`);
+        log.info(`ghrum recieved hook with type: ${type} and action ${data.action}`);
         switch (type) {
             case 'project':
                 return await project(data);
@@ -37,7 +37,7 @@ async function determineHook(type, data) {
  * @param {string} type webhook type that was recieved
  * @param {object} data post data from webhook
  */
-async function scrummy(type, data) {
+async function ghrum(type, data) {
     try {
         let resp = await determineHook(type, data);
 
@@ -58,5 +58,5 @@ async function scrummy(type, data) {
 }
 
 module.exports = {
-    scrummy
+    ghrum
 }

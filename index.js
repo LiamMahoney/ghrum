@@ -1,5 +1,5 @@
 const express = require('express');
-const { ghrum } = require('./core/ghrum');
+const { ghrum } = require('./src/ghrum');
 const { verifyPostData } = require('./utils/verify');
 const { log } = require('./utils/log');
 

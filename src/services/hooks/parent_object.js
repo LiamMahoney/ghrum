@@ -1,4 +1,8 @@
-const actions = require('../../actions');
+const { getRepoProjects, getProjectColumns } = require('../actions/project');
+const { getAllLabels } = require('../actions/label');
+const { addLabels, addToProject, removeLabel, getProjectCards: getIssueProjectCards } = require('../actions/issue');
+const { getProjectCards: getPullRequestProjectCards } = require('../actions/pull_request');
+const { moveProjectCard, deleteProjectCard } = require('../actions/project_card');
 
 /**
  * Objects within GitHub that can have associated project cards created from
@@ -22,18 +26,18 @@ class ParentObjectHook {
     async created() {
         try {
             let proms = [];
-            proms.push(actions.Project.getRepoProjects(this.repositoryOwner, this.repository));
-            proms.push(actions.Label.getAllLabels(this.repositoryOwner, this.repository));
+            proms.push(getRepoProjects(this.repositoryOwner, this.repository));
+            proms.push(getAllLabels(this.repositoryOwner, this.repository));
 
             let [projects, labels] = await Promise.all(proms);
 
             for (let project of projects) {
                 if (project.name.toLowerCase() === 'template') {
-                    let columns = await actions.Project.getProjectColumns(project.columns_url);
+                    let columns = await getProjectColumns(project.columns_url);
 
                     for (let label of labels) {
                         if (label.name.toLowerCase().trim() === `stage: ${columns[0].name.toLowerCase().trim()}`) {
-                            return await actions.Issue.addLabels(this.number, [label.name], this.repositoryOwner, this.repository);
+                            return await addLabels(this.number, [label.name], this.repositoryOwner, this.repository);
                         }
                     }
                 }
@@ -102,11 +106,11 @@ class ParentObjectHook {
         try {
             let milestoneProject = await this.getMilestoneProject();
 
-            let columns = await actions.Project.getProjectColumns(milestoneProject.columns_url);
+            let columns = await getProjectColumns(milestoneProject.columns_url);
 
             // adding project card to first column in project - if there's a stage label on the 
             // issue this will be handled by hook: project_card action: created
-            return await actions.Issue.addToProject(this.hook.issue.number, milestoneProject.name, columns[0].id, this.hook.issue.id, 'Issue');
+            return await addToProject(this.hook.issue.number, milestoneProject.name, columns[0].id, this.hook.issue.id, 'Issue');
         } catch (err) {
             throw err;
         }
@@ -169,7 +173,7 @@ class ParentObjectHook {
      */
     async projectLabelAdded() {
         try {
-            let repoProjects = await actions.Project.getRepoProjects(this.repositoryOwner, this.repository);
+            let repoProjects = await getRepoProjects(this.repositoryOwner, this.repository);
             
             // project from the project label
             let project = this.hook.label.name.substr(this.hook.label.name.indexOf(':') + 1).trim().toLowerCase();
@@ -178,11 +182,11 @@ class ParentObjectHook {
                 // finding project with same name as project label just added
                 if (repoProject.name.trim().toLowerCase() === project) {
                     // getting project columns
-                    let columns = await actions.Project.getProjectColumns(repoProject.columns_url);
+                    let columns = await getProjectColumns(repoProject.columns_url);
                     
                     if (columns.length > 0) {
                         // adding issue to project
-                        return await actions.Issue.addToProject(this.number, repoProject.name, columns[0].id, this.id, this.actionModule);
+                        return await addToProject(this.number, repoProject.name, columns[0].id, this.id, this.actionModule);
                     }
 
                     throw Error(`No columns in the project '${repoProject.name}' were found while trying to add a project card for #${this.number}`);
@@ -230,7 +234,7 @@ class ParentObjectHook {
                     // checking if the stage label is the stage label that was just added
                     if (label.name != this.hook.label.name) {
                         // removing old stage label - same call for both
-                        return await actions.Issue.removeLabel(this.number, label.name, this.repositoryOwner, this.repository);
+                        return await removeLabel(this.number, label.name, this.repositoryOwner, this.repository);
                     }
                 }
             }
@@ -250,7 +254,15 @@ class ParentObjectHook {
      */
     async moveChildProjectCards() {
         try {
-            let projectCards = await actions[this.actionModule].getProjectCards(this.number, this.repositoryOwner, this.repository);
+            let projectCards = undefined;
+
+            if (this.actionModule == 'Issue') {
+                projectCards = await getIssueProjectCards(this.number, this.repositoryOwner, this.repository);
+            } else if (this.actionModule == 'Pull Request') {
+                projectCards = await getPullRequestProjectCards(this.number, this.repositoryOwner, this.repository);
+            } else {
+                throw new Error(`unexpected actionModule ${this.actionModule} received`);
+            }
             
             // stage from the stage label
             let stage = this.hook.label.name.substr(this.hook.label.name.indexOf(':') + 1).trim().toLowerCase();
@@ -269,7 +281,7 @@ class ParentObjectHook {
                         if (projectColumn.node.name.toLowerCase().trim() === stage) {
                             // found the column with the same name in the project card's project
                             // move the project card to this column
-                            proms.push(actions.ProjectCard.moveProjectCard(projectCard.node.id, projectColumn.node.id));
+                            proms.push(moveProjectCard(projectCard.node.id, projectColumn.node.id));
                             break;
                         }
                     }
@@ -299,13 +311,13 @@ class ParentObjectHook {
             // getting project name from the label that was just removed
             let project = this.hook.label.name.substr(this.hook.label.name.indexOf(':') + 1).toLowerCase().trim();
 
-            let projectCards = await actions[this.actionModule].getProjectCards(this.number, this.repositoryOwner, this.repository);
+            let projectCards = await actions[this.actionModule].getIssueProjectCards(this.number, this.repositoryOwner, this.repository);
 
             for (let projectCard of projectCards.data.repository.parentObject.projectCards.edges) {
                 // finding project with same name as label removed
                 if (projectCard.node.project.name.toLowerCase().trim() === project) {
                     // deleting issue's project card in that project.
-                    await actions.ProjectCard.deleteProjectCard(projectCard.node.databaseId);
+                    await deleteProjectCard(projectCard.node.databaseId);
 
                     return `removed label '${this.hook.label.name}' from #${this.number}`;
                 }
@@ -325,7 +337,7 @@ class ParentObjectHook {
      */
     async getMilestoneProject() {
         try {
-            let projects = await actions.Project.getRepoProjects(this.repositoryOwner, this.repository);
+            let projects = await getRepoProjects(this.repositoryOwner, this.repository);
 
             for (let project of projects) {
                 if (project.name.toLowerCase().trim() === this.hook.milestone.title.toLowerCase().trim()) {
@@ -359,7 +371,13 @@ class ParentObjectHook {
      */
     async demilestonedHelper(actionModule, pcKey) {
         try {
-            let projectCards = await actions[actionModule].getProjectCards(this.hook.issue.number, this.repositoryOwner, this.repository);
+            if (this.actionModule == 'Issue') {
+                let projectCards = await getIssueProjectCards(this.number, this.repositoryOwner, this.repository);
+            } else if (this.actionModule == 'Pull Request') {
+                let projectCards = await getPullRequestProjectCards(this.number, this.repositoryOwner, this.repository);
+            } else {
+                throw new Error(`unexpected actionModule ${this.actionModule} received`);
+            }
 
             // iterating through Issue's project cards trying to find the one 
             // in the milestone project it was just demilestoned from
@@ -369,7 +387,7 @@ class ParentObjectHook {
                 // closed
                 if (projectCard.node.project.state === 'OPEN') {
                     if (projectCard.node.project.name.toLowerCase().trim() === this.hook.milestone.title.toLowerCase().trim()) {
-                        return await actions.ProjectCard.deleteProjectCard(projectCard.node.databaseId);
+                        return await deleteProjectCard(projectCard.node.databaseId);
                     }
                 }
             }

@@ -1,5 +1,9 @@
+const { milestone } = require('./hooks/milestone');
+const { issues } = require('./hooks/issues');
+const { project } = require('./hooks/project');
+const { projectCard } = require('./hooks/project_card');
+const { pullRequest } = require('./hooks/pull_request');
 const { log } = require('../utils/log');
-const { project, milestone, projectCard, issues, pullRequest } = require('./hooks');
 
 /**
  * The main controller of the program. This function decides
@@ -10,7 +14,7 @@ const { project, milestone, projectCard, issues, pullRequest } = require('./hook
  * @param {string} type: webhook type that was recieved
  * @param {object} data: post data from webhook
  */
-async function determineHook(type, data) {
+async function handleHook(type, data) {
     try {
         log.info(`ghrum recieved hook with type: ${type} and action ${data.action}`);
         switch (type) {
@@ -30,33 +34,6 @@ async function determineHook(type, data) {
     }
 }
 
-/**
- * The starting point of the application. Calls the main 
- * controller and logs the response of the program.
- * 
- * @param {string} type webhook type that was recieved
- * @param {object} data post data from webhook
- */
-async function ghrum(type, data) {
-    try {
-        let resp = await determineHook(type, data);
-
-        if (typeof resp === 'string') {
-            log.info(resp);
-        } else if (typeof resp === 'object') {
-            for (msg of resp) {
-                log.info(msg);
-            }
-        } else if (typeof resp === 'undefined') {
-            // do nothing
-        } else {
-            log.warn(`received a message of type ${typeof resp}: ${resp}`);
-        }
-    } catch (err) {
-        log.error(err.stack);
-    }
-}
-
 module.exports = {
-    ghrum
+    handleHook
 }

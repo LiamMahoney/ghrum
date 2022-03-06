@@ -1,5 +1,4 @@
 const {ParentObjectHook} = require('./parent_object');
-const actions = require('../actions');
 
 /**
  * Figures out which action is needed based on the github issue webook

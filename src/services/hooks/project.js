@@ -1,4 +1,6 @@
-const actions = require('../actions');
+const { createLabel } = require('../actions/label');
+const { getRepoMilestones, close } = require('../actions/milestone');
+const { deleteLabel } = require('../actions/label');
 
 /**
  * Figures out which action is needed based on the github proejct webook
@@ -44,7 +46,7 @@ class ProjectHook {
     async created() {
         try {
 
-            return await actions.Label.createLabel(this.repositoryOwner, this.repository, `Project: ${this.hook.project.name}`);
+            return await createLabel(this.repositoryOwner, this.repository, `Project: ${this.hook.project.name}`);
         
         } catch (err) {
             throw err;
@@ -63,18 +65,18 @@ class ProjectHook {
         try {
             if (await this.isMilestoneProject()) {
                 // TODO: good candidate to get moved to it's own method
-                let milestones = await actions.Milestone.getRepoMilestones(this.repositoryOwner, this.repository);
+                let milestones = await getRepoMilestones(this.repositoryOwner, this.repository);
 
                 for (let milestone of milestones) {
                     if (milestone.title.toLowerCase().trim() === this.hook.project.name.toLowerCase().trim()) {
-                        return await actions.Milestone.close(milestone.number, this.repositoryOwner, this.repository);
+                        return await close(milestone.number, this.repositoryOwner, this.repository);
                     }
                 }
 
                 return `could not find a matching milestone for project '${this.hook.project.name}'`;
             } else {
                 // delete project label
-                return await actions.Label.deleteLabel(`Project: ${this.hook.project.name}`, this.repositoryOwner, this.repository);
+                return await deleteLabel(`Project: ${this.hook.project.name}`, this.repositoryOwner, this.repository);
             }
         } catch (err) {
             throw err;
@@ -88,7 +90,7 @@ class ProjectHook {
      */
     async isMilestoneProject() {
         try {
-            let milestones = await actions.Milestone.getRepoMilestones(this.repositoryOwner, this.repository);
+            let milestones = await getRepoMilestones(this.repositoryOwner, this.repository);
             for (let milestone of milestones ) {
                 if (milestone.title.toLowerCase().trim() === this.hook.project.name.toLowerCase().trim()) {
                     return true;

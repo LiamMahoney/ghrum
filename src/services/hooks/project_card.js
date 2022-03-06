@@ -1,5 +1,8 @@
-const actions = require('../actions');
 const request = require('../../utils/request');
+const { removeMilestoneFromIssue, addLabels, removeLabel } = require('../actions/issue');
+const { getAllLabels } = require('../actions/label');
+const { getRepoMilestones } = require('../actions/milestone');
+const { moveProjectCard } = require('../actions/project_card');
 
 /**
  * 
@@ -96,7 +99,7 @@ class ProjectCardHook {
             let [project, parentObject] = await Promise.all(proms);
 
             if (await this.isMilestoneProject(project)) {
-                return await actions.Issue.removeMilestoneFromIssue(parentObject.number, this.repositoryOwner, this.repository);
+                return await removeMilestoneFromIssue(parentObject.number, this.repositoryOwner, this.repository);
             } else {
                 return await this.removeProjectLabelFromParent(project.name, parentObject.number, parentObject.labels);
             }
@@ -148,14 +151,14 @@ class ProjectCardHook {
             let proms = [];
             
             proms.push(request.genericGet(this.hook.project_card.content_url));
-            proms.push(actions.Label.getAllLabels(this.repositoryOwner, this.repository));
+            proms.push(getAllLabels(this.repositoryOwner, this.repository));
             proms.push(request.genericProjectGet(this.hook.project_card.project_url));
 
             let [parent, labels, project] = await Promise.all(proms);
 
             let label = await this.findMatchingLabel(labels, 'project', project.name);
 
-            return await actions.Issue.addLabels(parent.number, [label.name], this.repositoryOwner, this.repository);
+            return await addLabels(parent.number, [label.name], this.repositoryOwner, this.repository);
 
         } catch (err) {
             throw err;
@@ -170,7 +173,7 @@ class ProjectCardHook {
      */
     async isMilestoneProject(project) {
         try {
-            let milestones = await actions.Milestone.getRepoMilestones(this.repositoryOwner, this.repository);
+            let milestones = await getRepoMilestones(this.repositoryOwner, this.repository);
 
             for (let milestone of milestones) {
                 if (milestone.title.trim().toLowerCase() === project.name.toLowerCase().trim()) {
@@ -195,13 +198,13 @@ class ProjectCardHook {
      */
     async addProjectLabelToParent(projectName, parentNumber) {
         try {            
-            let labels = await actions.Label.getAllLabels(this.repositoryOwner, this.repository);
+            let labels = await getAllLabels(this.repositoryOwner, this.repository);
 
             for (let label of labels) {
                 if (label.name.substr(label.name.indexOf(':') + 1).toLowerCase().trim() === projectName.toLowerCase().trim()) {
                     // found the label to add to the parent
                     // both PRs and issues use the same API call to add label
-                    return await actions.Issue.addLabels(parentNumber, [label.name], this.repositoryOwner, this.repository);
+                    return await addLabels(parentNumber, [label.name], this.repositoryOwner, this.repository);
                 }
             }
 
@@ -229,7 +232,7 @@ class ProjectCardHook {
                 // label name minus the 'type' of the label
                 let labelName = projectLabel.name.substr(projectLabel.name.indexOf(':') + 1).trim(); 
                 if (labelName.toLowerCase() === projectName.toLowerCase().trim()) {
-                    return await actions.Issue.removeLabel(parentNumber, projectLabel.name, this.repositoryOwner, this.repository);
+                    return await removeLabel(parentNumber, projectLabel.name, this.repositoryOwner, this.repository);
                 }
             }
 
@@ -258,7 +261,7 @@ class ProjectCardHook {
             
             for (let column of columns) {
                 if (column.name.toLowerCase().trim() === stage) {
-                    return await actions.ProjectCard.moveProjectCard(this.hook.project_card.node_id, column.node_id);
+                    return await moveProjectCard(this.hook.project_card.node_id, column.node_id);
                 }
             }
 
@@ -391,7 +394,7 @@ class ProjectCardHook {
             let oldStageLabel = await this.findLabelOfType(labels, 'stage');
             
             // removing old stage label
-            return await actions.Issue.removeLabel(parentNumber, oldStageLabel.name, this.repositoryOwner, this.repository);
+            return await removeLabel(parentNumber, oldStageLabel.name, this.repositoryOwner, this.repository);
         } catch (err) {
             throw err;
         }
@@ -406,13 +409,13 @@ class ProjectCardHook {
      */
     async addNewStageLabel(parentNumber, columnName) {
         try {
-            let labels = await actions.Label.getAllLabels(this.repositoryOwner, this.repository);
+            let labels = await getAllLabels(this.repositoryOwner, this.repository);
 
             // finding the stage label that matches the column the project card
             // was moved to
             let newStageLabel = await this.findMatchingLabel(labels, 'stage', columnName);
 
-            return await actions.Issue.addLabels(parentNumber, [newStageLabel.name], this.repositoryOwner, this.repository);
+            return await addLabels(parentNumber, [newStageLabel.name], this.repositoryOwner, this.repository);
         } catch (err) {
             throw err;
         }

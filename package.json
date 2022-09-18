@@ -20,5 +20,7 @@
     "express": "^4.17.1",
     "winston": "^3.2.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "smee-client": "^1.2.3"
+  }
 }

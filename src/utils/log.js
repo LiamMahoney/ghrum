@@ -1,6 +1,5 @@
 const winston = require('winston');
 const path = require('path');
-const config = require('../config/config.json');
 
 const log = winston.createLogger({
     format: winston.format.combine(
@@ -8,15 +7,8 @@ const log = winston.createLogger({
         winston.format.printf(info => `${info.timestamp} [${info.level}] ${info.message}`)
     ),
     transports: [
-        new winston.transports.File({
-            level: "info",
-            filename: config.logFile,
-            maxsize: config.maxLogSize,
-            maxFiles: config.maxLogFiles,
-            tailable: true,
-            zippedArchive: true,
-            json: true,
-            timestamp: true
+        new winston.transports.Console({
+            level: process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info'
         })
     ]
 });

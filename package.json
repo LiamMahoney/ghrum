@@ -1,5 +1,5 @@
 {
-  "name": "scrummy",
+  "name": "ghrum",
   "version": "1.0.0",
   "description": "Scrum operations for github issues and projects",
   "main": "index.js",
@@ -8,17 +8,21 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LiamMahoney/scrummy.git"
+    "url": "git+https://github.com/LiamMahoney/ghrum.git"
   },
   "author": "liam mahoney",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/LiamMahoney/scrummy/issues"
+    "url": "https://github.com/LiamMahoney/ghrum/issues"
   },
-  "homepage": "https://github.com/LiamMahoney/scrummy#readme",
+  "homepage": "https://github.com/LiamMahoney/ghrum#readme",
   "dependencies": {
+    "@octokit/auth-app": "^4.0.5",
+    "axios": "^0.27.2",
     "express": "^4.17.1",
     "winston": "^3.2.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "smee-client": "^1.2.3"
+  }
 }

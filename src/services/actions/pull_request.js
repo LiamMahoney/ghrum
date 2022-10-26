@@ -1,22 +1,33 @@
-const request = require('../../utils/request');
+const { auth } = require('./auth');
+const axios = require('axios').default;
 
 /**
  * Gets pull request project cards for a PR in a repository.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {int} prNumber pull request number
  * @param {String} repoOwner owner of the repository
  * @param {String} repoName name of the repository
  */
-async function getPRProjectCards(prNumber, repoOwner, repoName) {
+async function getProjectCards(prNumber, repoOwner, repoName) {
     try {
-        let options = {
-            path: `/graphql`
+
+        const path = `/graphql`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let payload = {
+        const payload = {
             query: `query { 
                 repository(name: "${repoName}", owner: "${repoOwner}"){
-                    pullRequest(number: ${prNumber}) {
+                    parentObject: pullRequest(number: ${prNumber}) {
                         title
                         projectCards {
                             edges {
@@ -48,14 +59,18 @@ async function getPRProjectCards(prNumber, repoOwner, repoName) {
             }`
         }
 
-        let resp = await request.post(options, payload);
+        const response = await axios.post(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            payload, { headers }
+        );
 
-        return await request.handleQL(resp);
+        return response.data;
+
     } catch (err) {
         throw err;
     }
 }
 
 module.exports = {
-    getPRProjectCards
+    getProjectCards
 }

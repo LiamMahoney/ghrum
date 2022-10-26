@@ -30,7 +30,14 @@ async function handleHook(type, data) {
                 return await pullRequest(data);
         }
     } catch (err) {
-        throw err;
+        if (err.name === 'AxiosError') {
+            // makes stack available for AxiosError
+            Error.captureStackTrace(err);
+            // web request error - log details from request / response
+            console.error(JSON.stringify({STATUS_CODE: err.response.status, STATUS_TEXT: err.response.statusText, RESPONSE_BODY: err.response.data, METHOD: err.request.method, HOST: err.request.host, PATH: err.request.path, STACK_TRACE: err.stack}));
+        } else {
+            console.error(err.stack);
+        }
     }
 }
 

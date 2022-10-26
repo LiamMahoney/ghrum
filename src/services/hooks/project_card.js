@@ -1,4 +1,3 @@
-const request = require('../../utils/request');
 const { removeMilestoneFromIssue, addLabels, removeLabel } = require('../actions/issue');
 const { getAllLabels } = require('../actions/label');
 const { getRepoMilestones } = require('../actions/milestone');

@@ -1,5 +1,5 @@
-const request = require('../../utils/request');
-const url = require('url');
+const { auth } = require('./auth');
+const axios = require('axios').default;
 
 /**
  * Gets project information from the project URL returned 
@@ -7,66 +7,86 @@ const url = require('url');
  * 
  * @param {string} projURL URL for github GET project request - from webhook
  */
-async function getProject(projURL) {
+async function getProject(installationID, projectURL) {
     try {
-        let options = {
-            path: url.parse(projURL).path,
-            headers: {
-                Accept: 'application/vnd.github.inertia-preview+json'
-            }
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let resp = await request.get(options);
+        const response = await axios.get(projectURL, { headers });
 
-        return await request.handleRest(200, resp);
+        return response.data;
 
     } catch (err) {
         throw err;
-    } 
+    }
 }
 
 /**
  * Gets project column information from the column URL returned 
  * from the webhook.
- * 
+ *  
+ * @param {int} installationID ID of app installation - from webhook
  * @param {string} columnURL URL for github GET project column request - from webhook
  */
-async function getColumn(columnURL) {
+async function getColumn(installationID, columnURL) {
     try {
-        let options = {
-            path: url.parse(columnURL).path,
-            headers: {
-                Accept: 'application/vnd.github.inertia-preview+json'
-            }
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let resp = await request.get(options);
+        const response = await axios.get(columnURL, { headers });
 
-        return await request.handleRest(200, resp);
+        return response.data;
 
-    } catch (err) {
+    } catch(err) {
         throw err;
-    } 
+    }
 }
 
 /**
  * Gets all of the projects within the repository.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {String} repoOwner Owner of the repository to look in for projects
  * @param {String} repoName name of the reposiotyr to look in for projects
  */
-async function getRepoProjects(repoOwner, repoName) {
+async function getRepoProjects(installationID, repoOwner, repoName) {
     try {
-        let options = {
-            path: `/repos/${repoOwner}/${repoName}/projects`,
-            headers : {
-                Accept: 'application/vnd.github.inertia-preview+json'
-            }
+
+        const path = `/repos/${repoOwner}/${repoName}/projects`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Accept: 'application/vnd.github.inertia-preview+json',
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let resp = await request.get(options);
+        const response = await axios.get(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            { headers }
+        );
 
-        return await request.handleRest(200, resp);
+        return response.data;
 
     } catch (err) {
         throw err;
@@ -76,40 +96,58 @@ async function getRepoProjects(repoOwner, repoName) {
 /**
  * Gets all of the columns in the project.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {String} URL GET project API URL 
  */
-async function getProjectColumns(URL) {
+async function getProjectColumns(installationID, URL) {
     try {
-        let options = {
-            path: url.parse(URL).path,
-            headers: {
-                "Accept": "application/vnd.github.inertia-preview+json"
-            }
+        
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            "Accept": "application/vnd.github.inertia-preview+json",
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let resp = await request.get(options);
+        let response = await axios.get(URL, { headers });
 
-        return await request.handleRest(200, resp);
-    } catch(err) {
+        return response.data;
+
+    } catch (err) {
         throw err;
     }
 }
 
+
 /**
  * Creates a new copy of a repository project.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {String} ownerID nodeID of the owner of the project
  * @param {String} cloneID nodeID of the project to clone
  * @param {String} name name of the new project
  * @param {String} body description of the new project
  */
-async function cloneProject(ownerID, cloneID, name, body) {
+async function cloneProject(installationID, ownerID, cloneID, name, body) {
     try {
-        let options = {
-            path: `/graphql`
+        
+        const path = `/graphql`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let payload = {
+        const payload = {
             query: `mutation {
                 cloneProject(input: {
                     targetOwnerId: "${ownerID}",
@@ -126,7 +164,10 @@ async function cloneProject(ownerID, cloneID, name, body) {
             }`
         }
 
-        let resp = await request.handleQL(await request.post(options, payload));
+        const response = await axios.post(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            payload, { headers }
+        );
 
         return `created milestone project '${resp.data.cloneProject.project.name}'`;
 
@@ -138,27 +179,38 @@ async function cloneProject(ownerID, cloneID, name, body) {
 /**
  * Closes a project with a given name.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {String} project the name of the project to look for and close
  * @param {String} repoName name of the repository the project would be in
  * @param {String} repOwner github login of the owner of the repository
  * @returns {String} message stating what project was closed
  */
-async function closeProjectName(project, repoName, repoOwner) {
+async function closeProjectName(installationID, project, repoName, repoOwner) {
     try {
-        let projectObj = await findProjectFromName(project, repoName, repoOwner);
 
-        let options = {
-            path: `/projects/${projectObj.id}`,
-            headers: {
-                "Accept": "application/vnd.github.inertia-preview+json"
-            }
+        const projectObj = await findProjectFromName(project, repoName, repoOwner);
+
+        const path = `/projects/${projectObj.id}`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Accept: "application/vnd.github.inertia-preview+json",
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let payload = {
+        const pyaload = {
             state: "closed"
         }
 
-        let resp = await request.handleRest(200, await request.patch(options, payload), );
+        const response = await axios.patch(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            payload, { headers }
+        )
 
         return `closed project '${project}'`;
 
@@ -176,17 +228,18 @@ async function closeProjectName(project, repoName, repoOwner) {
  * @param {String} repOwner github login of the owner of the repository
  * @returns {Object} project details for the project with the given name
  */
-async function findProjectFromName(projectName, repoName, repoOwner) {
+async function findProjectFromName(installationID, projectName, repoName, repoOwner) {
     try {
-        let projects = await getRepoProjects(repoOwner, repoName);
+        let projects = await getRepoProjects(installationID, repoOwner, repoName);
 
-        for (project of projects) {
+        for (let project of projects) {
             if (project.name.toLowerCase().trim() === projectName.toLowerCase().trim()) {
                 return project;
             }
         }
 
         throw error(`couldn't find a project with the name of ${projectName} in the repository ${repoName}`);
+
     } catch (err) {
         throw err;
     }

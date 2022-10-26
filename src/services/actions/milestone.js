@@ -1,20 +1,30 @@
-const request = require('../../utils/request');
+const { auth } = require('./auth');
+const axios = require('axios').default;
 
 /**
  * Gets all of the issues and pull requests in the milestone.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {int} milestoneNumber the milestone's number
  * @param {int} itemCount the number of 'open_issues' in the milestone
  * @param {String} repoOwner the Github login of the repository owner
  * @param {String} repoName the name of the Github repository
  */
-async function getMilestoneItems(milestoneNumber, itemCount, repoOwner, repoName) {
+async function getMilestoneItems(installationID, milestoneNumber, itemCount, repoOwner, repoName) {
     try {
-        let options = {
-            path: `/graphql`
+        const path = `/graphql`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let payload = {
+        const payload = {
             query: `query {
                 repository(name: "${repoName}", owner: "${repoOwner}") {
                     milestone(number: ${milestoneNumber}) {
@@ -37,7 +47,12 @@ async function getMilestoneItems(milestoneNumber, itemCount, repoOwner, repoName
             }`
         }
 
-        return await request.handleQL(await request.post(options, payload));
+        const response = await axios.post(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            payload, { headers }
+        )
+
+        return response.data;
 
     } catch (err) {
         throw err;
@@ -47,15 +62,32 @@ async function getMilestoneItems(milestoneNumber, itemCount, repoOwner, repoName
 /**
  * Gets all of the milestones in the repository.
  * 
+ * @param {int} installationID ID of app installation - from webhook
+ * @param {String} repoOwner github login of the repository owner
+ * @param {String} repoName name of the github repository
  * @returns {Array} https://developer.github.com/v3/issues/milestones/#list-milestones
  */
-async function getRepoMilestones(repoOwner, repoName) {
+
+async function getRepoMilestones(installationID, repoOwner, repoName) {
     try {
-        let options = {
-            path: `/repos/${repoOwner}/${repoName}/milestones`
+        const path = `/repos/${repoOwner}/${repoName}/milestones`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        return await request.handleRest(200, await request.get(options));
+        const response = await axios.get(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            { headers }
+        );
+
+        return response.data;
 
     } catch (err) {
         throw err;
@@ -65,17 +97,18 @@ async function getRepoMilestones(repoOwner, repoName) {
 /**
  * Closes a milestone.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {int} number milestone number 
  * @param {String} repoOwner login of the owner of the repo the milestone is in
  * @param {String} repoName name of the repo the milestone is in
  */
-async function close(number, repoOwner, repoName) {
+async function close(installationID, number, repoOwner, repoName) {
     try {
-        let payload = {
+        const payload = {
             state: "closed"
         }
 
-        return await update(number, payload, repoOwner, repoName);
+        return await update(installationID, number, payload, repoOwner, repoName);
     } catch (err) {
         throw err;
     }
@@ -84,6 +117,7 @@ async function close(number, repoOwner, repoName) {
 /**
  * Updates a github milestone.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {int} number milestone number
  * @param {Object} payload = {
  *  title: "string",
@@ -94,13 +128,27 @@ async function close(number, repoOwner, repoName) {
  * @param {String} repoOwner login of the repository owner
  * @param {String} repoName name of the repository the milestone is in
  */
-async function update(number, payload, repoOwner, repoName) {
+async function update(installationID, number, payload, repoOwner, repoName) {
     try {
-        let options = {
-            path: `/repos/${repoOwner}/${repoName}/milestones/${number}`
+        const path = `/repos/${repoOwner}/${repoName}/milestones/${number}`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        return await request.handleRest(200, await request.patch(options, payload))
+        const response = await axios.patch(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            payload, { headers }
+        );
+
+        return response.data;
+
     } catch (err) {
         throw err;
     }

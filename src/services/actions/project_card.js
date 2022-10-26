@@ -1,15 +1,26 @@
-const request = require('../../utils/request');
+const { auth } = require('./auth');
+const axios = require('axios').default;
 
 /**
  * Moves the project card to the specified column
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {String} cardID project card ID to move
  * @param {String} columnID column ID to move project card to 
  */
-async function moveProjectCard(cardID, columnID) {
+async function moveProjectCard(installationID, cardID, columnID) {
     try {
-        let options = {
-            path: `/graphql`
+
+        const path = `/graphql`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
         let payload = {
@@ -27,33 +38,48 @@ async function moveProjectCard(cardID, columnID) {
             }`
         }
 
-        let resp = await request.post(options, payload);
-
-        await request.handleQL(resp);
+        const response = await axios.post(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            payload, { headers }
+        )
 
         return `moved project card ${cardID} to column ${columnID}`;
+
     } catch (err) {
         throw err;
     }
 }
 
+
 /**
  * Delete the project card.
- * 
+ *
+ * @param {int} installationID ID of app installation - from webhook
  * @param {String} cardID project card ID to remove
  */
-async function deleteProjectCard(cardID) {
+async function deleteProjectCard(installationID, cardID) {
     try {
-        let options = {
-            path: `/projects/columns/cards/${cardID}`,
-            headers: {
-                "Accept": "application/vnd.github.inertia-preview+json"
-            }
+
+        const path = `/projects/columns/cards/${cardID}`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Accept: 'application/vnd.github.inertia-preview+json',
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let resp = await request.del(options);
+        let response = await axios.delete(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            { headers }
+        );
 
-        return await request.handleRest(204, resp);
+        return response.data;
+
     } catch (err) {
         throw err;
     }

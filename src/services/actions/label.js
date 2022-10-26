@@ -1,22 +1,34 @@
-const request = require('../../utils/request');
+const { auth } = require('./auth');
+const axios = require('axios').default;
 
 /**
  * Gets all of the labels in the repository.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {string} repoOwner owner of the repo to get labels from
  * @param {string} repoName name of the repo to get labels from
  * @returns {Array} list of objects that represent a label
  */
-async function getAllLabels(repoOwner, repoName) {
+async function getAllLabels(installationID, repoOwner, repoName) {
     try {
+        const path = `/repos/${repoOwner}/${repoName}/labels`;
 
-        let opts = {
-            path: `/repos/${repoOwner}/${repoName}/labels`
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let resp = await request.get(opts);
+        const response = await axios.get(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            { headers }
+        )
 
-        return await request.handleRest(200, resp);
+        return response.data;
 
     } catch (err) {
         throw err;
@@ -26,28 +38,39 @@ async function getAllLabels(repoOwner, repoName) {
 /**
  * Creates a new label with a random color.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {string} repoOwner owner of the repo to add a label to
  * @param {string} repoName name of the repo to add a label to
  * @param {string} labelName the name of the label to create
  */
-async function createLabel(repoOwner, repoName, labelName) {
+async function createLabel(installationID, repoOwner, repoName, labelName) {
     try {
-        let color = randomColor();
+        const path = `/repos/${repoOwner}/${repoName}/labelsx`;
 
-        let opts = {
-            path: `/repos/${repoOwner}/${repoName}/labels`
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let payload = {
+        const color = randomColor();
+
+        const payload = {
             name: labelName,
             color: color
         }
 
-        let resp = await request.handleRest(201, await request.post(opts, payload));
-
-        return `created label '${resp.name}'`;
+        const response = await axios.post(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            payload, { headers }
+        )
 
     } catch (err) {
+        console.error(err.stack);
         throw err;
     }
 }
@@ -55,20 +78,33 @@ async function createLabel(repoOwner, repoName, labelName) {
 /**
  * Deletes a label from a repository.
  * 
+ * @param {int} installationID ID of app installation - from webhook
  * @param {String} labelName the label to delete
  * @param {String} repoOwner the login of the owner of the repo
  * @param {String} repoName the name of the repo the label is in
  * @returns {String} states what label was deleted
  */
-async function deleteLabel(labelName, repoOwner, repoName) {
+async function deleteLabel(installationID, labelName, repoOwner, repoName) {
     try {
-        let opts = {
-            path: `/repos/${repoOwner}/${repoName}/labels/${labelName}`
+        const path = `/repos/${repoOwner}/${repoName}/labels/${labelName}`;
+
+        const { token } = await auth({
+            type: 'installation',
+            installationId: installationID
+        });
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'ghrum'
         }
 
-        let resp = await request.handleRest(204, await request.del(opts));
+        const response = await axios.delete(
+            `https://${process.env.GITHUB_API_BASE_URL}${path}`,
+            { headers }
+        );
 
         return `deleted label '${labelName}' from repository '${repoName}'`;
+
     } catch (err) {
         throw err;
     }
